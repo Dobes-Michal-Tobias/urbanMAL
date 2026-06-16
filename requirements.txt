@@ -1,0 +1,19 @@
+# Stažení a analýza uličních sítí
+osmnx>=1.9.0
+
+# Datová manipulace
+pandas>=2.1.0
+geopandas>=0.14.0
+numpy>=1.26.0
+
+# Statistika a fitting (mocninná regrese, Altmannův zákon)
+scipy>=1.11.0
+statsmodels>=0.14.0
+
+# Vizualizace
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Jupyter
+jupyterlab>=4.0.0
+ipykernel>=6.0.0
