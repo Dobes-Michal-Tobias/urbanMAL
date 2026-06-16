@@ -25,6 +25,9 @@ data/processed/*
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 
+references/*
+notebooks/cache/*
+
 # IDE
 .vscode/
 .idea/
