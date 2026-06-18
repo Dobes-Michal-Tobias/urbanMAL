@@ -1,5 +1,11 @@
+from pathlib import Path
+
 import geopandas as gpd
 import pandas as pd
+
+from src.urbanmal.metrics._batch import run_resumable_batch
+
+BLOCK_STAT_KEYS = ["mean_m2", "median_m2", "std_m2", "count"]
 
 
 def compute_block_stats(gdf: gpd.GeoDataFrame, crs_projected: str = "EPSG:3857") -> dict:
@@ -19,24 +25,30 @@ def compute_block_stats(gdf: gpd.GeoDataFrame, crs_projected: str = "EPSG:3857")
     }
 
 
-def batch_block_stats(cities: pd.DataFrame, name_col: str = "nazev") -> pd.DataFrame:
+def batch_block_stats(
+    cities: pd.DataFrame,
+    checkpoint_path: str | Path,
+    name_col: str = "nazev",
+    key_col: str = "kod",
+) -> pd.DataFrame:
     """
     Iteruje přes DataFrame měst, pro každé stáhne bloky a spočítá metriky ploch.
 
-    Vrací rozšířený DataFrame s novými sloupci: mean_m2, median_m2, std_m2, count, error.
+    Průběžně zapisuje do `checkpoint_path` (CSV) – při přerušení lze bezpečně
+    spustit znovu, dokončená města se přeskočí. Zobrazuje progress bar (tqdm).
     """
     from src.urbanmal.data.osm import download_urban_blocks
 
-    records = []
-    for _, row in cities.iterrows():
-        entry = row.to_dict()
+    def process_row(row: pd.Series) -> dict:
         try:
             gdf = download_urban_blocks(row[name_col])
             stats = compute_block_stats(gdf)
-            entry.update(stats)
-            entry["error"] = None
+            stats["error"] = None
+            return stats
         except Exception as e:
-            entry.update({"mean_m2": None, "median_m2": None, "std_m2": None, "count": None})
-            entry["error"] = str(e)
-        records.append(entry)
-    return pd.DataFrame(records)
+            return {**{k: None for k in BLOCK_STAT_KEYS}, "error": str(e)}
+
+    return run_resumable_batch(
+        cities, checkpoint_path, process_row, BLOCK_STAT_KEYS,
+        key_col=key_col, desc="OSMnx bloky",
+    )

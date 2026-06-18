@@ -27,6 +27,7 @@ data/processed/*
 
 references/*
 notebooks/cache/*
+cache/*
 
 # IDE
 .vscode/

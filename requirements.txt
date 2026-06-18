@@ -17,6 +17,9 @@ seaborn>=0.13.0
 # Excel parsing
 openpyxl>=3.1.0
 
+# Progress bary
+tqdm>=4.66.0
+
 # Jupyter
 jupyterlab>=4.0.0
 ipykernel>=6.0.0
