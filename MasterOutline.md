@@ -156,6 +156,30 @@ Testujeme **dvě hypotézy nezávisle**:
 | Agregace konstituentu | mean / median / kvantily | → reportovat vše, jako primární medián |
 | Minimální počet segmentů | ? | → rozhodnout po průzkumu distribuce n v ČR vzorku |
 
+### Architektonické rozhodnutí: lokální PBF extrakt místo Overpass API
+
+Při běhu fáze 1 (843 měst) se po ~60 dotazech veřejný Overpass server (`overpass-api.de`)
+začal chovat patologicky – odmítal navazovat spojení (connect timeout 180s opakovaně),
+průměrná doba na město vzrostla na ~56 minut. Při tomto tempu by stažení ČR trvalo týdny
+a fáze 2/3 (tisíce měst) by byly fakticky neproveditelné.
+
+**Řešení:** Stáhnout jednorázově celostátní `.osm.pbf` extrakt z Geofabriku (~550 MB pro ČR)
+a číst z něj lokálně přes GDAL OSM driver (`geopandas.read_file(..., layer=...)`), bez
+jakéhokoliv API volání. `pyrosm` byl zvažován, ale nešlo ho nainstalovat (chybí Visual C++
+Build Tools pro kompilaci `cykhash`, navíc žádné předkompilované wheely pro Python 3.14).
+GDAL/pyogrio už je součástí `geopandas` závislostí a OSM driver podporuje čtení `.pbf` přímo.
+
+**Klíčové vrstvy GDAL OSM driveru:**
+- `lines` – cesty (`highway` jako přímý sloupec) → uliční segmenty (H1)
+- `multipolygons` – budovy/landuse (H2) i administrativní hranice (`boundary='administrative'`, `admin_level`, `name`)
+
+**Postup:** hranice obcí se extrahují z PBF jednou pro celou zemi (`admin_level=8` = obce
+v ČR) a cachují do GeoJSON. Pro každé město se pak ulice/bloky vyřezávají bbox + spatial
+filtrem z lokálního souboru – řádově rychlejší a bez závislosti na vnější službě.
+
+Tento přístup nahradí Overpass i pro fáze 2/3 – stačí stáhnout odpovídající
+celostátní/kontinentální extrakty z Geofabriku.
+
 ---
 
 ## 5. Statistická analýza

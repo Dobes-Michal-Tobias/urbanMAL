@@ -28,6 +28,7 @@ data/processed/*
 references/*
 notebooks/cache/*
 cache/*
+data/raw/osm/*.pbf
 
 # IDE
 .vscode/
