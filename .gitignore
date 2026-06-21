@@ -33,6 +33,7 @@ data/raw/osm/*.pbf
 # IDE
 .vscode/
 .idea/
+.claude/
 
 # OS
 .DS_Store
