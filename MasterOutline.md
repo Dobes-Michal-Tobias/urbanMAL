@@ -75,12 +75,38 @@ Testujeme **dvě hypotézy nezávisle**:
 - Přidat sloupce: populace, rozloha, typ_sídla (vesnice/město/statutární město)
 
 **Postup:**
-- [ ] Načíst tabulku měst z ČSÚ / RÚIAN → DataFrame
-- [ ] Iterovat přes města, pro každé stáhnout OSMnx graf a extrahovat metriky
-- [ ] Ošetřit chyby (město nenalezeno v OSM, timeout, prázdný graf)
-- [ ] Uložit výsledný dataset do `data/processed/czdata.csv`
-- [ ] Fitovat MA zákon (scipy curve_fit / statsmodels OLS na log-log)
-- [ ] Vizualizovat scatter plot + fit křivka
+- [x] Načíst tabulku měst z ČSÚ / RÚIAN → DataFrame
+- [x] Pro každé město vytáhnout metriky z lokálního PBF extraktu (viz architektonické rozhodnutí výše)
+- [x] Ošetřit chyby (boundary_not_found, no_edges_found, no_blocks_found)
+- [x] Uložit výsledný dataset do `data/processed/cz_segments_*.csv`, `cz_blocks.csv`
+- [x] Fitovat MA zákon (log-log OLS, Altmann NLS, AIC/BIC model comparison)
+- [x] Vizualizovat scatter plot + fit křivka
+
+**Výsledky (843 měst, 0 chyb) – viz `notebooks/01_czech_cities.ipynb`, sekce 8:**
+
+H1 (uliční segmenty) – potvrzeno ve všech 4 kombinacích `network_type × agregace`:
+
+| network_type | agregace | b | R² |
+|---|---|---|---|
+| drive | mean | -0,206 | 0,456 |
+| drive | median | -0,111 | 0,227 |
+| all | mean | -0,263 | **0,531** |
+| all | median | -0,250 | 0,431 |
+
+H2 (bloky):
+
+| agregace | b | R² |
+|---|---|---|
+| mean_m2 | **-0,520** | **0,471** |
+| median_m2 | -0,126 | 0,278 |
+
+- Bootstrap 95% CI pro b vylučuje 0 v obou hypotézách (H1: [-0,126, -0,095]; H2: [-0,554, -0,486]); permutační test p=0,0000 pro obě.
+- Leave-one-out (bez Prahy): výsledek H1 se téměř nemění (b=-0,1112 vs. -0,1107) → není tažen jedním outlierem.
+- Breusch-Pagan test (H1): heteroskedasticita přítomna (p<0,0001) – proto je důležité spoléhat na bootstrap/permutaci, ne na klasické OLS p-hodnoty.
+- **AIC/BIC model comparison: mocninná funkce vítězí nad lineární i exponenciální formou (ΔAIC ≫ 10 v obou hypotézách). Altmannova exponenciální korekce nepřináší dost zlepšení, aby ospravedlnila třetí parametr – prostá mocninná funkce je nejlépe podpořený model.**
+- H2 má citelně silnější efekt než H1 (R² 0,47 vs. 0,23 při průměru).
+
+**Závěr Fáze 1: Menzerath-Altmannův zákon platí pro obě hypotézy, robustně, nejlépe popsán prostou mocninnou funkcí.**
 
 **Výstup:** Notebook `notebooks/01_czech_cities.ipynb`
 
